@@ -9,7 +9,19 @@ from datetime import date
 import mysql.connector
 import subprocess
 import sys
+import logging
 
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO, filename="debug.log", datefmt='%m/%d/%Y %I:%M:%S %p'
+)
+
+logger = logging.getLogger(__name__)
+logger.info("Iniciando servicio!")
+# logger.info()
+# logger.error()
+# logger.warning()
+# logger.critical()
 
 class Scraping(object):
 	"""docstring for Scraping"""
@@ -86,12 +98,12 @@ class Scraping(object):
 
 		self.suma=0
 		for row in self.rows:
-			self.suma+=float(row.find_elements(By.TAG_NAME, "td")[5].text)
+			self.suma+=float(row.find_elements(By.TAG_NAME, "td")[5].text if not row.find_elements(By.TAG_NAME, "td")[5].text=="" else 0)
 
-		print("Current Time =", self.current_time())
+		logger.info(f"Tiempo de inicio = {self.current_time()}")
 
 	def printValues(self):
-		print(f'{self.suma} < {self.total} rows = {len(self.rows)}')
+		logger.info(f'{self.suma} < {self.total} rows = {len(self.rows)}')
 
 	def current_time(self):
 		current_time = time.strftime("%H:%M:%S", time.localtime())
@@ -113,7 +125,7 @@ class Scraping(object):
 				
 				self.suma=0
 				for row in self.rows:
-					self.suma+=float(row.find_elements(By.TAG_NAME, "td")[5].text)
+					self.suma+=float(row.find_elements(By.TAG_NAME, "td")[5].text if not row.find_elements(By.TAG_NAME, "td")[5].text=="" else 0)
 
 	def insertDiamonds(self):
 		try:
@@ -121,7 +133,7 @@ class Scraping(object):
 			sql = f"SELECT COUNT(id) FROM diamonds WHERE diamond_date='{date.today().year}/{date.today().month}/{date.today().day}'"
 			cursor.execute(sql)
 			ultimo=cursor.fetchone()[0]
-			print(f"Begin INSERT the {len(self.rows)-ultimo} rows")
+			logger.info(f"Inicia el INSERT de los {len(self.rows)-ultimo} registros")
 
 			for row in self.rows[ultimo:len(self.rows)]:
 				# diamondDate = row.find_elements(By.TAG_NAME, "td")[0].text
@@ -132,11 +144,13 @@ class Scraping(object):
 				diamondMemberFromId=row.find_elements(By.TAG_NAME, "td")[2].text
 				diamondMemberToId=row.find_elements(By.TAG_NAME, "td")[3].text
 				ServiceName=row.find_elements(By.TAG_NAME, "td")[4].text
-				Amount=row.find_elements(By.TAG_NAME, "td")[5].text
+				Amount=row.find_elements(By.TAG_NAME, "td")[5].text if not row.find_elements(By.TAG_NAME, "td")[5].text=="" else 0
 				agency=self.user_agency
 
-				sql = "INSERT INTO diamonds (diamond_date, curator_id, member_from_id, member_to_id, serviceName, amount, agency) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-				values = (diamondDate, diamondCuratorId, diamondMemberFromId, diamondMemberToId, ServiceName, Amount, agency)
+				# sql = "INSERT INTO diamonds (diamond_date, curator_id, member_from_id, member_to_id, serviceName, amount, agency) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+				sql = "INSERT INTO diamonds (diamond_date, curator_id, member_from_id, member_to_id, serviceName, amount, agency) VALUES (SYSDATE(), %s, %s, %s, %s, %s, %s)"
+				# values = (diamondDate, diamondCuratorId, diamondMemberFromId, diamondMemberToId, ServiceName, Amount, agency)
+				values = (diamondCuratorId, diamondMemberFromId, diamondMemberToId, ServiceName, Amount, agency)
 				cursor.execute(sql, values)
 				self.db.commit()
 			
@@ -144,9 +158,10 @@ class Scraping(object):
 		except Exception as e:
 			raise e
 
-		print("Current Time =", self.current_time())
+		logger.info(f"Finalizada inserción en diamonds Time = {self.current_time()}")
 
 	def insertPeoples(self):
+		logger.info(f"Inicia inserción en peoples Time = {self.current_time()}")
 		cursor=self.connect()
 		sql = "select count(id), member_from_id from diamonds group by member_from_id"
 		cursor.execute(sql)
@@ -195,6 +210,7 @@ class Scraping(object):
 				# cursor.execute(sql)
 				# self.close_connection()
 				pass
+		logger.info(f"Finalizada la inserción en peoples Time = {self.current_time()}")
 		
 	def quit(self):
 		self.driver.quit()
