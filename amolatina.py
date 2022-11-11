@@ -130,7 +130,7 @@ class Scraping(object):
 	def insertDiamonds(self):
 		try:
 			cursor=self.connect()
-			sql = f"SELECT COUNT(id) FROM diamonds WHERE diamond_date='{date.today().year}/{date.today().month}/{date.today().day}'"
+			sql = f"SELECT COUNT(id) FROM diamonds WHERE diamond_date like '{date.today().year}-{date.today().month}-{date.today().day}%'"
 			cursor.execute(sql)
 			ultimo=cursor.fetchone()[0]
 			logger.info(f"Inicia el INSERT de los {len(self.rows)-ultimo} registros")
@@ -139,7 +139,7 @@ class Scraping(object):
 				# diamondDate = row.find_elements(By.TAG_NAME, "td")[0].text
 				# diamondDate =  diamondDate if not '-' in diamondDate else diamondDate.split('-')[0].strip()
 				# diamondDate = f"{diamondDate.split('/')[2]}/{diamondDate.split('/')[0]}/{diamondDate.split('/')[1]}"
-				diamondDate = f'{date.today().year}/{date.today().month}/{date.today().day}'
+				diamondDate = f'{date.today().year}-{date.today().month}-{date.today().day} 00:00:00.000'
 				diamondCuratorId=row.find_elements(By.TAG_NAME, "td")[1].text
 				diamondMemberFromId=row.find_elements(By.TAG_NAME, "td")[2].text
 				diamondMemberToId=row.find_elements(By.TAG_NAME, "td")[3].text
