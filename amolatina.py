@@ -27,8 +27,8 @@ class Scraping(object):
 	"""docstring for Scraping"""
 	
 	def __init__( self, user_agency, password_agency, datefrom=f'{date.today().month if not date.today().month  < 10 else "0"+str(date.today().month)}/{date.today().day if not date.today().day  < 10 else "0"+str(date.today().day)}/{date.today().year}' if len(sys.argv)==1 else sys.argv[1] ):
-		# self.host="127.0.0.1"
-		self.host="10.156.80.115"
+		self.host="127.0.0.1"
+		# self.host="10.156.80.115"
 		self.user="root"
 		self.password="12345678"
 		self.database="scraping"
@@ -139,7 +139,7 @@ class Scraping(object):
 				# diamondDate = row.find_elements(By.TAG_NAME, "td")[0].text
 				# diamondDate =  diamondDate if not '-' in diamondDate else diamondDate.split('-')[0].strip()
 				# diamondDate = f"{diamondDate.split('/')[2]}/{diamondDate.split('/')[0]}/{diamondDate.split('/')[1]}"
-				diamondDate = f'{date.today().year}-{date.today().month}-{date.today().day} 00:00:00.000'
+				diamondDate = f'{date.today().year}-{date.today().month}-{date.today().day} 00:00:00'
 				diamondCuratorId=row.find_elements(By.TAG_NAME, "td")[1].text
 				diamondMemberFromId=row.find_elements(By.TAG_NAME, "td")[2].text
 				diamondMemberToId=row.find_elements(By.TAG_NAME, "td")[3].text
@@ -163,53 +163,75 @@ class Scraping(object):
 	def insertPeoples(self):
 		logger.info(f"Inicia inserción en peoples Time = {self.current_time()}")
 		cursor=self.connect()
-		sql = "select count(id), member_from_id from diamonds group by member_from_id"
+		sql = """SELECT p.api_id from
+		(
+			select DISTINCT(d.member_from_id) as id from scraping.diamonds d WHERE d.member_from_id != 0 union 
+			select DISTINCT(d.member_to_id) as id from scraping.diamonds d WHERE d.member_to_id != 0
+		) a left join scraping.peoples p on(a.id=p.api_id) where p.api_id != ''"""
 		cursor.execute(sql)
-		rows1=cursor.fetchall()
-
-		sql = "select count(id), member_to_id from diamonds group by member_to_id"
-		cursor.execute(sql)
-		rows2=cursor.fetchall()
+		rows=cursor.fetchall()
 		self.close_connection()
 		
-		members=[x[1] for x in rows1 if x[1] != ''] + [x[1] for x in rows2 if x[1] != '']
+		members=[x[0] for x in rows if x[0] != '']
+
+		if len(members)==0:
+			sql = """SELECT DISTINCT(d.member_from_id) as id from scraping.diamonds d WHERE d.member_from_id != 0 union 
+			select DISTINCT(d.member_to_id) as id from scraping.diamonds d WHERE d.member_to_id != 0"""
+		else:
+			sql = f"""SELECT 
+			d.id
+			from
+			(
+			select DISTINCT(d.member_from_id) as id from scraping.diamonds d WHERE d.member_from_id != 0 union 
+			select DISTINCT(d.member_to_id) as id from scraping.diamonds d WHERE d.member_to_id != 0
+			) d WHERE d.id not in {tuple(members)}"""
+		
+		cursor=self.connect()
+		cursor.execute(sql)
+		rows=cursor.fetchall()
+		self.close_connection()
+
+		members=[x[0] for x in rows if x[0] != '']
+		logger.info(members[:])
+
 		for id in members:
-			try:
-				response = requests.get(f'https://api.amolatina.com/users/{id}')
-				data=response.json()
-				api_id=data['id'] if 'id' in data.keys() else ''
-				name=data['name'] if 'name' in data.keys() else ''
-				gender=data['gender'] if 'gender' in data.keys() else ''
-				birthday=data['birthday'].split("T")[0] if 'birthday' in data.keys() else '0000-00-00'
-				country=data['country'] if 'country' in data.keys() else ''
-				city=data['city'] if 'city' in data.keys() else ''
-				avatar=data['thumbnail'] if 'thumbnail' in data.keys() else ''
-				occupation=data['occupation'] if 'occupation' in data.keys() else ''
-				eye=data['eye'] if 'eye' in data.keys() else ''
-				hair=data['hair'] if 'hair' in data.keys() else ''
-				about=data['about'] if 'about' in data.keys() else ''
-				bodytype=data['bodytype'] if 'bodytype' in data.keys() else ''
-				smoke=data['smoke'] if 'smoke' in data.keys() else ''
-				drink=data['drink'] if 'drink' in data.keys() else ''
-				education=data['education'] if 'education' in data.keys() else ''
-				relationship=data['relationship'] if 'relationship' in data.keys() else ''
+			for i in range(0,10):
+				try:
+					if i==0:
+						api=f'https://api.amolatina.com/users/{id}'
+						response = requests.get(api)
+					else:
+						api=f'https://api{i}.amolatina.com/users/{id}'
+						response = requests.get(api)
 
-				cursor=self.connect()
-				sql = "INSERT INTO peoples (api_id, name, gender, birthday, country, city, avatar, occupation, eye, hair, about, bodytype, smoke, drink, education, relationship ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-				values = (api_id, name, gender, birthday, country, city, avatar, occupation, eye, hair, about, bodytype, smoke, drink, education, relationship)
-				cursor.execute(sql, values)
-				self.db.commit()
-				self.close_connection()
-			except Exception as e:
-				# print(id+" Fallo")
-				# cursor=self.connect()
-				# sql='SELECT IFNULL(MAX(id), 0)+1 FROM peoples'
-				# cursor.execute(sql)
+					data=response.json()
+					api_id=data['id'] if 'id' in data.keys() else ''
+					name=data['name'] if 'name' in data.keys() else ''
+					gender=data['gender'] if 'gender' in data.keys() else ''
+					birthday=data['birthday'].split("T")[0] if 'birthday' in data.keys() else '0000-00-00'
+					country=data['country'] if 'country' in data.keys() else ''
+					city=data['city'] if 'city' in data.keys() else ''
+					avatar=data['thumbnail'] if 'thumbnail' in data.keys() else ''
+					occupation=data['occupation'] if 'occupation' in data.keys() else ''
+					eye=data['eye'] if 'eye' in data.keys() else ''
+					hair=data['hair'] if 'hair' in data.keys() else ''
+					about=data['about'] if 'about' in data.keys() else ''
+					bodytype=data['bodytype'] if 'bodytype' in data.keys() else ''
+					smoke=data['smoke'] if 'smoke' in data.keys() else ''
+					drink=data['drink'] if 'drink' in data.keys() else ''
+					education=data['education'] if 'education' in data.keys() else ''
+					relationship=data['relationship'] if 'relationship' in data.keys() else ''
 
-				# sql = f'ALTER TABLE peoples auto_increment = {cursor.fetchone()[0]}'
-				# cursor.execute(sql)
-				# self.close_connection()
-				pass
+					cursor=self.connect()
+					sql = "INSERT INTO peoples (api_id, name, gender, birthday, country, city, avatar, occupation, eye, hair, about, bodytype, smoke, drink, education, relationship ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+					values = (api_id, name, gender, birthday, country, city, avatar, occupation, eye, hair, about, bodytype, smoke, drink, education, relationship)
+					cursor.execute(sql, values)
+					self.db.commit()
+					self.close_connection()
+					break
+				except Exception as e:
+					logger.error(f"El id {id} no se encuentra en la API {api}")
+					continue
 		logger.info(f"Finalizada la inserción en peoples Time = {self.current_time()}")
 		
 	def quit(self):
@@ -261,4 +283,4 @@ while True:
 			result=subprocess.check_output(command, shell=True)
 		except Exception as e:
 			pass
-	# break 
+	# break
