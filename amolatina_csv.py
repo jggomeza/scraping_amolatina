@@ -20,7 +20,7 @@ import os
 
 # Enable logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO, filename="debug.log", datefmt='%m/%d/%Y %I:%M:%S %p'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO, filename=f"{os.path.abspath(os.path.dirname(__file__))}/debug.log", datefmt='%m/%d/%Y %I:%M:%S %p'
 )
 
 logger = logging.getLogger(__name__)
