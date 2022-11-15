@@ -1,0 +1,16 @@
+supervisorctl reread
+supervisorctl update
+
+supervisorctl status
+supervisorctl restart all
+supervisorctl stop all
+supervisorctl start all
+systemctl restart supervisor.service
+
+cat > /home/admin01/admin01-script.sh <<EOF
+echo "Running admin01-script.sh as user $(whoami)"
+EOF
+chmod u+x /home/admin01/admin01-script.sh
+
+su -c "/home/admin01/admin01-script.sh" admin01
+pgrep chrome | xargs kill -9
