@@ -76,10 +76,15 @@ class Scraping(object):
 		buttonDiamonds.click()
 
 	def dateFrom(self):
-		datepicker = self.driver.find_element(By.XPATH, '/html/body/div[4]/div/div[2]/div/div/div/div/div/div/div[2]/div[1]/div/div[1]/div/div[1]/div[1]/div[1]/input')
-		datepicker.clear()
-		datepicker.send_keys(self.today)
-		datepicker.click()
+		datepickerFrom = self.driver.find_element(By.XPATH, '/html/body/div[4]/div/div[2]/div/div/div/div/div/div/div[2]/div[1]/div/div[1]/div/div[1]/div[1]/div[1]/input')
+		datepickerFrom.clear()
+		datepickerFrom.send_keys(self.today)
+		datepickerFrom.click()
+
+		datepickerTo = self.driver.find_element(By.XPATH, '/html/body/div[4]/div/div[2]/div/div/div/div/div/div/div[2]/div[1]/div/div[1]/div/div[1]/div[1]/div[3]/input')
+		datepickerTo.clear()
+		datepickerTo.send_keys(self.today)
+		datepickerTo.click()
 
 	def showButtonRed(self):
 		redButton = self.driver.find_element(By.XPATH, '/html/body/div[4]/div/div[2]/div/div/div/div/div/div/div[2]/div[1]/div/div[1]/button')
@@ -156,10 +161,10 @@ class Scraping(object):
 				sql = "INSERT INTO diamonds (diamond_date, curator_id, member_from_id, member_to_id, serviceName, amount, agency) VALUES (SYSDATE(), %s, %s, %s, %s, %s, %s)"
 				values = (diamondCuratorId, diamondMemberFromId, diamondMemberToId, ServiceName, Amount, agency)
 				cursor.execute(sql, values)
-				self.db.commit()
 			except Exception as e:
 				raise e
 
+		self.db.commit()
 		self.close_connection()
 		logger.info(f"Finalizada inserción en diamonds Time = {self.current_time()}")
 
@@ -229,12 +234,12 @@ class Scraping(object):
 					sql = "INSERT INTO peoples (api_id, name, gender, birthday, country, city, avatar, occupation, eye, hair, about, bodytype, smoke, drink, education, relationship ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 					values = (api_id, name, gender, birthday, country, city, avatar, occupation, eye, hair, about, bodytype, smoke, drink, education, relationship)
 					cursor.execute(sql, values)
-					self.db.commit()
-					self.close_connection()
 					break
 				except Exception as e:
 					logger.error(f"El id {id} no se encuentra en la API {api}")
 					continue
+		self.db.commit()
+		self.close_connection()
 		logger.info(f"Finalizada la inserción en peoples Time = {self.current_time()}")
 		logger.info(f"############################################## {self.current_time()} ##############################################")
 		logger.info("")
@@ -258,7 +263,7 @@ while True:
 		app.showButtonRed()
 		app.download_csv()
 		app.load_csv()
-		app.insertPeoples()
+		# app.insertPeoples()
 		app.quit()
 
 		try:
@@ -266,4 +271,4 @@ while True:
 			result=subprocess.check_output(command, shell=True)
 		except Exception as e:
 			pass
-	# break 
+	break 
