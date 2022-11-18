@@ -263,7 +263,7 @@ while True:
 		app.showButtonRed()
 		app.download_csv()
 		app.load_csv()
-		# app.insertPeoples()
+		app.insertPeoples()
 		app.quit()
 
 		try:
@@ -271,4 +271,4 @@ while True:
 			result=subprocess.check_output(command, shell=True)
 		except Exception as e:
 			pass
-	break 
+	# break 
